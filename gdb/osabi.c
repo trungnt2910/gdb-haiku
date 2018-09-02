@@ -67,6 +67,7 @@ static const struct osabi_names gdb_osabi_names[] =
   { "FreeBSD", NULL },
   { "NetBSD", NULL },
   { "OpenBSD", NULL },
+  { "Haiku", NULL },
   { "WindowsCE", NULL },
   { "DJGPP", NULL },
   { "QNX-Neutrino", NULL },
@@ -198,7 +199,7 @@ gdbarch_register_osabi (enum bfd_architecture arch, unsigned long machine,
   *name_ptr++ = gdbarch_osabi_name (osabi);
   *name_ptr = NULL;
 }
-
+
 
 /* Sniffer to find the OS ABI for a given file's architecture and flavour.
    It is legal to have multiple sniffers for each arch/flavour pair, to
@@ -230,7 +231,7 @@ gdbarch_register_osabi_sniffer (enum bfd_architecture arch,
   sniffer->next = gdb_osabi_sniffer_list;
   gdb_osabi_sniffer_list = sniffer;
 }
-
+
 
 enum gdb_osabi
 gdbarch_lookup_osabi (bfd *abfd)
@@ -381,7 +382,7 @@ gdbarch_init_osabi (struct gdbarch_info info, struct gdbarch *gdbarch)
      gdbarch_osabi_name (info.osabi),
      info.bfd_arch_info->printable_name);
 }
-
+
 /* Limit on the amount of data to be read.  */
 #define MAX_NOTESZ	128
 
@@ -590,7 +591,7 @@ generic_elf_osabi_sniffer (bfd *abfd)
 
   return osabi;
 }
-
+
 static void
 set_osabi (const char *args, int from_tty, struct cmd_list_element *c)
 {

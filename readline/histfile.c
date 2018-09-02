@@ -409,7 +409,7 @@ history_truncate_file (fname, lines)
     {
       write (file, bp, chars_read - (bp - buffer));
 
-#if defined (__BEOS__)
+#if (defined(__BEOS__) || defined(__HAIKU__))
       /* BeOS ignores O_TRUNC. */
       ftruncate (file, chars_read - (bp - buffer));
 #endif

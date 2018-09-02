@@ -511,7 +511,7 @@ rl_getc (stream)
       if (result == 0)
 	return (EOF);
 
-#if defined (__BEOS__)
+#if (defined(__BEOS__) || defined(__HAIKU__))
       if (errno == EINTR)
 	continue;
 #endif

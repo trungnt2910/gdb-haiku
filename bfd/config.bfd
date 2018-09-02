@@ -732,6 +732,10 @@ case "${targ}" in
     targ_defvec=i386_elf32_vec
     targ_selvecs="iamcu_elf32_vec i386_aout_nbsd_vec"
     ;;
+  i[3-7]86-*-haiku*)
+    targ_defvec=i386_elf32_vec
+    targ_selvecs="i386_pe_vec i386_pei_vec"
+    ;;
   i[3-7]86-*-netware*)
     targ_defvec=i386_elf32_vec
     targ_selvecs="iamcu_elf32_vec i386_nlm32_vec i386_coff_vec i386_aout_vec"
@@ -791,6 +795,11 @@ case "${targ}" in
   x86_64-*-netbsd* | x86_64-*-openbsd*)
     targ_defvec=x86_64_elf64_vec
     targ_selvecs="i386_elf32_vec iamcu_elf32_vec i386_aout_nbsd_vec i386_coff_vec i386_pei_vec x86_64_pei_vec l1om_elf64_vec k1om_elf64_vec"
+    want64=true
+    ;;
+  x86_64-*-haiku*)
+    targ_defvec=x86_64_elf64_vec
+    targ_selvecs="i386_elf32_vec i386_coff_vec i386_pei_vec x86_64_pei_vec"
     want64=true
     ;;
   x86_64-*-linux-*)

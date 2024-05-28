@@ -1190,7 +1190,7 @@ TRACE(("haiku_child_wait_internal(): B_APP_IMAGE created, reprocess -> exec\n"))
 					// event
 					ourstatus->kind = TARGET_WAITKIND_EXECD;
 					ourstatus->value.execd_pathname
-						= event->data.image_created.info.name;
+						= xstrdup(event->data.image_created.info.name);
 
 					reprocessEvent = 1;
 				} else if (reprocessEvent <= 1) {
@@ -1554,7 +1554,7 @@ haiku_child_create_inferior (target_ops* ops, const char *exec_file,
 	const std::string& allargs, char **env, int from_tty)
 {
 	TRACE(("haiku_child_create_inferior(`%s', `%s', %p, %d)\n", exec_file,
-		allargs, env, from_tty));
+		allargs.c_str(), env, from_tty));
 
 	/* Do not change either targets above or the same target if already present.
 	 The reason is the target stack is shared across multiple inferiors.  */

@@ -335,6 +335,11 @@ gdb_signal_from_host (int hostsig)
     return GDB_SIGNAL_LIBRT;
 #endif
 
+#if defined (SIGKILLTHR)
+  if (hostsig == SIGKILLTHR)
+    return GDB_SIGNAL_SIGKILLTHR;
+#endif
+
 #if defined (REALTIME_LO)
   if (hostsig >= REALTIME_LO && hostsig < REALTIME_HI)
     {
@@ -590,6 +595,11 @@ do_gdb_signal_to_host (enum gdb_signal oursig,
 #if defined (SIGLIBRT)
     case GDB_SIGNAL_LIBRT:
       return SIGLIBRT;
+#endif
+
+#if defined (SIGKILLTHR)
+    case GDB_SIGNAL_SIGKILLTHR:
+      return SIGKILLTHR;
 #endif
 
     default:

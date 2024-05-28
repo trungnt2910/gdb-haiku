@@ -110,6 +110,10 @@ static int listen_desc = -1;
 # define write(fd, buf, len) send (fd, (char *) buf, len, 0)
 #endif
 
+#if defined(SIGPOLL) && !defined(SIGIO)
+# define SIGIO SIGPOLL
+#endif
+
 int
 gdb_connected (void)
 {

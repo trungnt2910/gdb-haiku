@@ -400,6 +400,15 @@ case "${gdbserver_host}" in
 			srv_tgtobj="${srv_tgtobj} nat/netbsd-nat.o"
 			srv_tgtobj="${srv_tgtobj} arch/amd64.o"
 			;;
+  x86_64-*-haiku*)	srv_regobj=""
+			srv_tgtobj="haiku-low.o haiku-amd64-low.o fork-child.o"
+			srv_tgtobj="${srv_tgtobj} nat/fork-inferior.o"
+			srv_tgtobj="${srv_tgtobj} nat/haiku-debug.o"
+			srv_tgtobj="${srv_tgtobj} nat/haiku-nat.o"
+			srv_tgtobj="${srv_tgtobj} nat/haiku-nub-message.o"
+			srv_tgtobj="${srv_tgtobj} nat/haiku-osdata.o"
+			srv_tgtobj="${srv_tgtobj} arch/amd64.o"
+			;;
 
   xtensa*-*-linux*)	srv_regobj=reg-xtensa.o
 			srv_tgtobj="$srv_linux_obj linux-xtensa-low.o"

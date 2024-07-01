@@ -24,10 +24,8 @@
 
 #include "gdbsupport/common-defs.h"
 
-#define thread_info gdb_thread_info
-#include "regcache.h"
-#include "target.h"
-#undef thread_info
+#include "diagnostics.h"
+#include "target/waitstatus.h"
 
 #undef debug_printf
 #undef debug_vprintf
@@ -744,22 +742,16 @@ public:
     if (load_existing)
       {
         /* Load existing images.  */
-        image_info image_info;
-        int32 cookie = 0;
-
-        while (get_next_image_info (team, &cookie, &image_info) == B_OK)
-          {
-            if (strcmp (image_info.name, "commpage") != 0)
-              image_created (ptid_t (team, 0, team), image_info.name,
-                             (CORE_ADDR)image_info.text);
-          }
+        for_each_image (team, [&] (const image_info &info) {
+          image_created (ptid_t (team, 0, team), info.name, info.text);
+          return 0;
+        });
 
         /* Debug and stop existing threads.  */
-        thread_info thread_info;
-        cookie = 0;
-
-        while (get_next_thread_info (team, &cookie, &thread_info) == B_OK)
-          debug_thread (thread_info.thread);
+        for_each_thread (team, [] (const thread_info &info) {
+          debug_thread (info.tid);
+          return 0;
+        });
       }
 
     HAIKU_TRACE ("Attached team debugger: team=%i, debugger_port=%i, "
@@ -1534,26 +1526,28 @@ thread_alive (ptid_t ptid)
 /* See haiku-nat.h.  */
 
 int
-read_memory (pid_t pid, CORE_ADDR memaddr, unsigned char *myaddr, int size)
+read_memory (pid_t pid, CORE_ADDR memaddr, unsigned char *myaddr,
+             int *sizeLeft)
 {
   HAIKU_TRACE ("pid=%i, memaddr=%p, myaddr=%p, size=%i", pid, (void *)memaddr,
-               myaddr, size);
+               myaddr, *sizeLeft);
 
   std::shared_ptr<team_debug_context> context;
   RETURN_AND_SET_ERRNO_IF_FAIL (get_context (pid, context));
 
   debug_nub_read_memory_reply reply;
 
-  while (size > 0)
+  while (*sizeLeft > 0)
     {
       RETURN_AND_SET_ERRNO_IF_FAIL (
           context->send<B_DEBUG_MESSAGE_READ_MEMORY> (
-              { .address = (void *)memaddr, .size = (int32)size }, reply));
+              { .address = (void *)memaddr, .size = (int32)*sizeLeft },
+              reply));
 
       memcpy (myaddr, reply.data, reply.size);
       memaddr += reply.size;
       myaddr += reply.size;
-      size -= reply.size;
+      *sizeLeft -= reply.size;
     }
 
   HAIKU_TRACE ("pid=%i, memaddr=%p success", pid, (void *)memaddr);
@@ -1565,10 +1559,10 @@ read_memory (pid_t pid, CORE_ADDR memaddr, unsigned char *myaddr, int size)
 
 int
 write_memory (pid_t pid, CORE_ADDR memaddr, const unsigned char *myaddr,
-              int size)
+              int *sizeLeft)
 {
   HAIKU_TRACE ("pid=%i, memaddr=%p, myaddr=%p, size=%i", pid, (void *)memaddr,
-               myaddr, size);
+               myaddr, *sizeLeft);
 
   std::shared_ptr<team_debug_context> context;
   RETURN_AND_SET_ERRNO_IF_FAIL (get_context (pid, context));
@@ -1576,10 +1570,10 @@ write_memory (pid_t pid, CORE_ADDR memaddr, const unsigned char *myaddr,
   debug_nub_write_memory data;
   debug_nub_write_memory_reply reply;
 
-  while (size > 0)
+  while (*sizeLeft > 0)
     {
       data.address = (void *)memaddr;
-      data.size = std::min (size, (int)B_MAX_READ_WRITE_MEMORY_SIZE);
+      data.size = std::min (*sizeLeft, (int)B_MAX_READ_WRITE_MEMORY_SIZE);
       memcpy (data.data, myaddr, data.size);
 
       /* TODO: Rollback if attempt failed?  */
@@ -1589,7 +1583,7 @@ write_memory (pid_t pid, CORE_ADDR memaddr, const unsigned char *myaddr,
 
       memaddr += reply.size;
       myaddr += reply.size;
-      size -= reply.size;
+      *sizeLeft -= reply.size;
     }
 
   HAIKU_TRACE ("pid=%i, memaddr=%p success", pid, (void *)memaddr);
@@ -1604,21 +1598,18 @@ read_offsets (pid_t pid, CORE_ADDR *text, CORE_ADDR *data)
 {
   HAIKU_TRACE ("pid=%i", pid);
 
-  static image_info info;
-
-  int32 cookie = 0;
-
-  while (true)
-    {
-      RETURN_AND_SET_ERRNO_IF_FAIL (get_next_image_info (pid, &cookie, &info));
-      if (info.type == B_APP_IMAGE)
-        {
-          *text = (CORE_ADDR)info.text;
-          *data = (CORE_ADDR)info.data - info.text_size;
-
+  return for_each_image (
+      pid,
+      [&] (const image_info &info) {
+        if (!info.is_main_executable)
           return 0;
-        }
-    }
+
+        *text = info.text;
+        *data = info.data - info.text_size;
+
+        return 1;
+      },
+      true);
 }
 
 /* See haiku-nat.h.  */
@@ -1665,21 +1656,21 @@ pid_to_exec_file (pid_t pid)
 {
   HAIKU_TRACE ("pid=%i", pid);
 
-  static image_info info;
+  const char *result = nullptr;
 
-  int32 cookie = 0;
+  for_each_image (
+      pid,
+      [&] (const image_info &info) {
+        if (!info.is_main_executable)
+          return 0;
 
-  while (true)
-    {
-      RETURN_VALUE_AND_SET_ERRNO_IF_FAIL (
-          get_next_image_info (pid, &cookie, &info), nullptr);
-      if (info.type == B_APP_IMAGE)
-        {
-          HAIKU_TRACE ("pid=%i, name=%s", pid, info.name);
+        result = info.name;
 
-          return info.name;
-        }
-    }
+        return 1;
+      },
+      true);
+
+  return result;
 }
 
 /* See haiku-nat.h.  */
@@ -1689,13 +1680,171 @@ thread_name (ptid_t ptid)
 {
   HAIKU_TRACE ("ptid=%s", ptid.to_string ().c_str ());
 
-  static thread_info info;
+  static ::thread_info info;
   RETURN_VALUE_AND_SET_ERRNO_IF_FAIL (get_thread_info (ptid.tid (), &info),
                                       nullptr);
 
   HAIKU_TRACE ("ptid=%s, name=%s", ptid.to_string ().c_str (), info.name);
 
   return info.name;
+}
+
+/* See haiku-nat.h.  */
+
+std::string
+pid_to_str (ptid_t ptid)
+{
+  HAIKU_TRACE ("ptid=%s", ptid.to_string ().c_str ());
+
+  union
+  {
+    ::team_info team;
+    ::thread_info thread;
+  };
+
+  bool team_valid = get_team_info (ptid.pid (), &team) == B_OK;
+
+  std::string result
+      = team_valid ? string_printf ("team %d (%s)", ptid.pid (), team.name)
+                   : string_printf ("team %d", ptid.pid ());
+
+  if (!ptid.tid_p ())
+    return result;
+
+  bool thread_valid
+      = team_valid && (get_thread_info (ptid.tid (), &thread) == B_OK);
+
+  result += thread_valid
+                ? string_printf (" thread %ld (%s)", ptid.tid (), thread.name)
+                : string_printf (" thread %ld", ptid.tid ());
+
+  return result;
+}
+
+/* See haiku-nat.h.  */
+
+int
+stop (ptid_t ptid)
+{
+  /* Stops specific thread if tid is non-zero.
+     Otherwise stops whole process.  */
+  if (ptid.tid_p ())
+    {
+      RETURN_AND_SET_ERRNO_IF_FAIL (debug_thread (ptid.tid ()));
+      return 0;
+    }
+  else
+    {
+      return for_each_thread (ptid.pid (), [] (const thread_info &info) {
+        RETURN_AND_SET_ERRNO_IF_FAIL (debug_thread (info.tid));
+        return 0;
+      });
+    }
+}
+
+/* See haiku-nat.h.  */
+
+int
+for_each_image (pid_t pid,
+                const std::function<int (const image_info &info)> &callback,
+                bool needs_one)
+{
+  static ::image_info haiku_info;
+  static image_info info;
+
+  int32 cookie = 0;
+
+  while (get_next_image_info (pid, &cookie, &haiku_info) == B_OK)
+    {
+      if (strcmp (haiku_info.name, "commpage") == 0)
+        continue;
+
+      info.text = (CORE_ADDR)haiku_info.text;
+      info.text_size = (ULONGEST)haiku_info.text_size;
+      info.data = (CORE_ADDR)haiku_info.data;
+      info.data_size = (ULONGEST)haiku_info.data_size;
+      info.name = haiku_info.name;
+      info.is_main_executable = haiku_info.type == B_APP_IMAGE;
+
+      switch (callback (info))
+        {
+        case -1:
+          return -1;
+        case 0:
+          continue;
+        case 1:
+          return 0;
+        }
+    }
+
+  if (needs_one)
+    {
+      errno = B_BAD_VALUE;
+      return -1;
+    }
+
+  return 0;
+}
+
+/* See haiku-nat.h.  */
+
+int
+for_each_area (pid_t pid,
+               const std::function<int (const area_info &info)> &callback)
+{
+  static ::area_info haiku_info;
+  static area_info info;
+
+  ssize_t cookie = 0;
+
+  while (get_next_area_info (pid, &cookie, &haiku_info) == B_OK)
+    {
+      info.low = (CORE_ADDR)haiku_info.address;
+      info.high = (CORE_ADDR)haiku_info.address + haiku_info.size;
+      info.can_read = haiku_info.protection & B_READ_AREA;
+      info.can_write = haiku_info.protection & B_WRITE_AREA;
+
+      switch (callback (info))
+        {
+        case -1:
+          return -1;
+        case 0:
+          continue;
+        case 1:
+          return 0;
+        }
+    }
+
+  return 0;
+}
+
+/* See haiku-nat.h.  */
+
+int
+for_each_thread (pid_t pid,
+                 const std::function<int (const thread_info &info)> &callback)
+{
+  static ::thread_info haiku_info;
+  static thread_info info;
+
+  int32 cookie = 0;
+
+  while (get_next_thread_info (pid, &cookie, &haiku_info) == B_OK)
+    {
+      info.tid = haiku_info.thread;
+
+      switch (callback (info))
+        {
+        case -1:
+          return -1;
+        case 0:
+          continue;
+        case 1:
+          return 0;
+        }
+    }
+
+  return 0;
 }
 
 }

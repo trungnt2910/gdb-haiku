@@ -718,6 +718,7 @@ ALL_64_TARGET_OBS = \
 	amd64-darwin-tdep.o \
 	amd64-dicos-tdep.o \
 	amd64-fbsd-tdep.o \
+	amd64-haiku-tdep.o \
 	amd64-linux-tdep.o \
 	amd64-netbsd-tdep.o \
 	amd64-obsd-tdep.o \
@@ -796,6 +797,7 @@ ALL_TARGET_OBS = \
 	ft32-tdep.o \
 	glibc-tdep.o \
 	h8300-tdep.o \
+	haiku-tdep.o \
 	hppa-bsd-tdep.o \
 	hppa-linux-tdep.o \
 	hppa-netbsd-tdep.o \
@@ -807,6 +809,7 @@ ALL_TARGET_OBS = \
 	i386-fbsd-tdep.o \
 	i386-gnu-tdep.o \
 	i386-go32-tdep.o \
+	i386-haiku-tdep.o \
 	i386-linux-tdep.o \
 	i386-netbsd-tdep.o \
 	i386-nto-tdep.o \
@@ -865,6 +868,7 @@ ALL_TARGET_OBS = \
 	solib-darwin.o \
 	solib-dsbt.o \
 	solib-frv.o \
+	solib-haiku.o \
 	solib-svr4.o \
 	sparc-linux-tdep.o \
 	sparc-netbsd-tdep.o \
@@ -1470,6 +1474,7 @@ HFILES_NO_SRCDIR = \
 	solib.h \
 	solib-aix.h \
 	solib-darwin.h \
+	solib-haiku.h \
 	solib-svr4.h \
 	solib-target.h \
 	solist.h \
@@ -1664,6 +1669,8 @@ ALLDEPFILES = \
 	amd64-dicos-tdep.c \
 	amd64-fbsd-nat.c \
 	amd64-fbsd-tdep.c \
+	amd64-haiku-nat.c \
+	amd64-haiku-tdep.c \
 	amd64-linux-nat.c \
 	amd64-linux-tdep.c \
 	amd64-nat.c \
@@ -1704,6 +1711,8 @@ ALLDEPFILES = \
 	glibc-tdep.c \
 	go32-nat.c \
 	h8300-tdep.c \
+	haiku-nat.c \
+	haiku-tdep.c \
 	hppa-bsd-tdep.c \
 	hppa-linux-nat.c \
 	hppa-linux-tdep.c \
@@ -1721,6 +1730,8 @@ ALLDEPFILES = \
 	i386-fbsd-tdep.c \
 	i386-gnu-nat.c \
 	i386-gnu-tdep.c \
+	i386-haiku-nat.c \
+	i386-haiku-tdep.c \
 	i386-linux-nat.c \
 	i386-linux-tdep.c \
 	i386-netbsd-nat.c \
@@ -1816,6 +1827,7 @@ ALLDEPFILES = \
 	sh-tdep.c \
 	sol2-tdep.c \
 	solib-aix.c \
+	solib-haiku.c \
 	solib-rocm.c \
 	solib-svr4.c \
 	sparc-linux-nat.c \

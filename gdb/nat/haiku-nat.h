@@ -24,6 +24,9 @@
 
 #include <unistd.h>
 
+#include "target/resume.h"
+#include "target/wait.h"
+
 namespace haiku_nat
 {
 
@@ -96,7 +99,7 @@ extern bool thread_alive (ptid_t ptid);
 
 [[nodiscard]]
 extern int read_memory (pid_t pid, CORE_ADDR memaddr, unsigned char *myaddr,
-                        int size);
+                        int *sizeLeft);
 
 /* Implement the write_memory target_ops method.
 
@@ -106,7 +109,7 @@ extern int read_memory (pid_t pid, CORE_ADDR memaddr, unsigned char *myaddr,
 
 [[nodiscard]]
 extern int write_memory (pid_t pid, CORE_ADDR memaddr,
-                         const unsigned char *myaddr, int size);
+                         const unsigned char *myaddr, int *sizeLeft);
 
 /* Implement the read_offsets target_ops method.
 
@@ -144,6 +147,78 @@ extern const char *pid_to_exec_file (pid_t pid);
 
 [[nodiscard]]
 extern const char *thread_name (ptid_t ptid);
+
+/* Implement the pid_to_str target_ops method.
+
+   Converts a process id to a string.  Usually, the string just
+   contains `process xyz', but on some systems it may contain
+   `process xyz thread abc'.  */
+
+[[nodiscard]]
+extern std::string pid_to_str (ptid_t ptid);
+
+/* Implement the stop target_ops method.
+
+   Make target stop in a continuable fashion.  */
+
+[[nodiscard]]
+extern int stop (ptid_t ptid);
+
+struct image_info
+{
+  CORE_ADDR text;
+  ULONGEST text_size;
+  CORE_ADDR data;
+  ULONGEST data_size;
+  const char *name;
+  bool is_main_executable;
+};
+
+/* Calls the callback for each loaded image of the process with the specified
+   PID.
+   The callback should return -1 on error, 0 if the loop should continue,
+   or 1 if the loop should end.
+   If needs_one is true, the function returns an error if none of the callback
+   invocations returns 1.
+
+   Returns 0 on success and -1 on failure.  */
+extern int
+for_each_image (pid_t pid,
+                const std::function<int (const image_info &info)> &callback,
+                bool needs_one = false);
+
+struct area_info
+{
+  CORE_ADDR low;
+  CORE_ADDR high;
+  bool can_read : 1;
+  bool can_write : 1;
+};
+
+/* Calls the callback for each mapped area of the process with the specified
+   PID.
+   The callback should return -1 on error, 0 if the loop should continue,
+   or 1 if the loop should end.
+
+   Returns 0 on success and -1 on failure.  */
+extern int
+for_each_area (pid_t pid,
+               const std::function<int (const area_info &info)> &callback);
+
+struct thread_info
+{
+  ptid_t::tid_type tid;
+};
+
+/* Calls the callback for each active thread of the process with the specified
+   PID.
+   The callback should return -1 on error, 0 if the loop should continue,
+   or 1 if the loop should end.
+
+   Returns 0 on success and -1 on failure.  */
+extern int
+for_each_thread (pid_t pid,
+                 const std::function<int (const thread_info &info)> &callback);
 
 /* Utility functions that are meant to be supplied by the embedding
    application.  */

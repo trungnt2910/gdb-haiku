@@ -74,6 +74,10 @@ case ${gdb_host} in
     obsd*)
 	NATDEPFILES='fork-child.o nat/fork-inferior.o inf-ptrace.o'
 	;;
+	haiku*)
+	NATDEPFILES='fork-child.o nat/fork-inferior.o \
+		nat/haiku-debug.o nat/haiku-nat.o nat/haiku-nub-message.o haiku-nat.o'
+	;;
     cygwin*)
 	NATDEPFILES='x86-nat.o nat/x86-dregs.o windows-nat.o nat/windows-nat.o'
 	;;
@@ -476,6 +480,24 @@ case ${gdb_host} in
 		NATDEPFILES="${NATDEPFILES} obsd-nat.o sparc64-obsd-nat.o \
 		sparc-nat.o bsd-kvm.o"
 		LOADLIBES='-lkvm'
+		;;
+	esac
+	;;
+	haiku)
+	case ${gdb_host_cpu} in
+	    i386)
+		# Host: Haiku/i386 ELF
+		NATDEPFILES="${NATDEPFILES} i386-haiku-nat.o"
+		LOADLIBES='-lnetwork'
+		;;
+	esac
+	;;
+	haiku64)
+	case ${gdb_host_cpu} in
+	    i386)
+		# Host: Haiku/amd64
+		NATDEPFILES="${NATDEPFILES} amd64-haiku-nat.o"
+		LOADLIBES='-lnetwork'
 		;;
 	esac
 	;;

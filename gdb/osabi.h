@@ -1,6 +1,6 @@
 /* OS ABI variant handling for GDB.
    Copyright (C) 2001-2023 Free Software Foundation, Inc.
-   
+
    This file is part of GDB.
 
    This program is free software; you can redistribute it and/or modify
@@ -33,6 +33,7 @@ enum gdb_osabi
   GDB_OSABI_FREEBSD,
   GDB_OSABI_NETBSD,
   GDB_OSABI_OPENBSD,
+  GDB_OSABI_HAIKU,
   GDB_OSABI_WINCE,
   GDB_OSABI_GO32,
   GDB_OSABI_QNXNTO,

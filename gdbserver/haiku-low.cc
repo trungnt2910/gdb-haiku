@@ -307,7 +307,7 @@ haiku_process_target::read_memory (CORE_ADDR memaddr, unsigned char *myaddr,
                                    int size)
 {
   if (haiku_nat::read_memory (pid_of (current_process ()), memaddr, myaddr,
-                              size)
+                              &size)
       < 0)
     {
       HAIKU_TRACE ("haiku_nat::read_memory failed: %s", safe_strerror (errno));
@@ -323,7 +323,7 @@ haiku_process_target::write_memory (CORE_ADDR memaddr,
                                     const unsigned char *myaddr, int size)
 {
   if (haiku_nat::write_memory (pid_of (current_process ()), memaddr, myaddr,
-                               size)
+                               &size)
       < 0)
     {
       HAIKU_TRACE ("haiku_nat::write_memory failed: %s",

@@ -7704,8 +7704,11 @@ remote_notif_stop_can_get_pending_events (remote_target *remote,
      instead.  If we fetch all queued events from stub, remote stub
      may exit and we have no chance to process them back in
      remote_wait_ns.  */
-  remote_state *rs = remote->get_remote_state ();
-  rs->mark_async_event_handler ();
+  if (target_is_async_p ())
+    {
+      remote_state *rs = remote->get_remote_state ();
+      rs->mark_async_event_handler ();
+    }
   return 0;
 }
 
@@ -7902,7 +7905,7 @@ remote_target::queued_stop_reply (ptid_t ptid)
   remote_state *rs = get_remote_state ();
   stop_reply_up r = remote_notif_remove_queued_reply (ptid);
 
-  if (!rs->stop_reply_queue.empty () && target_can_async_p ())
+  if (!rs->stop_reply_queue.empty () && target_is_async_p ())
     {
       /* There's still at least an event left.  */
       rs->mark_async_event_handler ();
